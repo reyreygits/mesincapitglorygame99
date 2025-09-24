@@ -2,25 +2,25 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Claim Hadiah Mesin Capit</title>
+  <title>Klaim Hadiah Mesin Capit</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f7f7f7;
+      background-color: #f7f7f7;
       padding: 20px;
     }
     .section {
-      background: #fff;
+      background: white;
+      padding: 20px;
       max-width: 500px;
       margin: 30px auto;
-      padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     input, button {
-      width: 100%;
       padding: 10px;
       margin: 10px 0;
+      width: 100%;
       box-sizing: border-box;
     }
     .success {
@@ -59,7 +59,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
-    // Firebase config kamu (REALTIME DATABASE AKTIF)
+    // Firebase config milik kamu
     const firebaseConfig = {
       apiKey: "AIzaSyCMlcSNmPU924iGdXORaX1PBq6sTXiaw-o",
       authDomain: "ariptoto-firebase.firebaseapp.com",
@@ -74,67 +74,61 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function claimPrize() {
-      const code = document.getElementById("inputCode").value.trim().toUpperCase();
+    async function claimPrize() {
+      const codeInput = document.getElementById("inputCode");
+      const code = codeInput.value.trim().toUpperCase();
       const resultDiv = document.getElementById("claimResult");
 
       if (!code) {
-        resultDiv.innerHTML = `<span class="error">⚠️ Masukkan kode mesin capit!</span>`;
+        resultDiv.innerHTML = `<span class="error">❌ Masukkan kode mesin capit!</span>`;
         return;
       }
 
-      resultDiv.innerHTML = `⏳ Memeriksa kode...`;
+      resultDiv.textContent = "🔍 Memeriksa kode...";
 
-      const machineRef = db.ref("machines/" + code);
+      try {
+        const snapshot = await db.ref("machines/" + code).get();
 
-      machineRef.once("value")
-        .then(snapshot => {
-          if (!snapshot.exists()) {
-            resultDiv.innerHTML = `<span class="error">❌ Kode tidak ditemukan!</span>`;
-            return;
+        if (!snapshot.exists()) {
+          resultDiv.innerHTML = `<span class="error">❌ Kode tidak ditemukan!</span>`;
+          return;
+        }
+
+        const machine = snapshot.val();
+
+        // Proses transaksi pengurangan remaining
+        await db.ref("machines/" + code).transaction(currentData => {
+          if (currentData === null) return;
+
+          if (currentData.remaining > 0) {
+            currentData.remaining--;
+            return currentData;
+          } else {
+            return; // Hadiah habis, tidak dikurangi
           }
-
-          const data = snapshot.val();
-          const prizeName = data.name || "Hadiah";
-
-          if (data.remaining < 1) {
+        }, (error, committed, finalSnapshot) => {
+          if (error) {
+            resultDiv.innerHTML = `<span class="error">❌ Terjadi kesalahan: ${error.message}</span>`;
+          } else if (!committed) {
             resultDiv.innerHTML = `
-              <span class="success">🎁 Hadiah: <span class="voucher">${prizeName}</span></span><br>
+              <span class="voucher">🎁 ${machine.name} - ${machine.nominal}</span>
               <span class="error">😢 Maaf, hadiah sudah habis!</span>
             `;
-            return;
+          } else {
+            const updatedData = finalSnapshot.val();
+            resultDiv.innerHTML = `
+              <span class="success">🎉 Selamat! Kamu mendapat:</span>
+              <div class="voucher">${updatedData.name} - ${updatedData.nominal}</div>
+              <small>Sisa hadiah: ${updatedData.remaining}</small>
+            `;
           }
-
-          // Lanjut klaim hadiah secara atomik (transaksi)
-          machineRef.transaction(current => {
-            if (current && current.remaining > 0) {
-              current.remaining--;
-              return current;
-            }
-            return; // Jika null atau habis
-          }, (error, committed, snapshotAfter) => {
-            if (error) {
-              resultDiv.innerHTML = `<span class="error">❌ Gagal klaim: ${error.message}</span>`;
-            } else if (!committed) {
-              resultDiv.innerHTML = `
-                <span class="success">🎁 Hadiah: <span class="voucher">${prizeName}</span></span><br>
-                <span class="error">😢 Maaf, hadiah sudah habis saat diklaim!</span>
-              `;
-            } else {
-              const updated = snapshotAfter.val();
-              resultDiv.innerHTML = `
-                <span class="success">🎉 Selamat! Kamu mendapat:</span>
-                <div class="voucher">${updated.name}</div>
-                <small>Sisa hadiah: ${updated.remaining}</small>
-              `;
-            }
-          });
-        })
-        .catch(error => {
-          resultDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
         });
 
-      document.getElementById("inputCode").value = "";
+        codeInput.value = "";
+
+      } catch (err) {
+        resultDiv.innerHTML = `<span class="error">❌ Gagal mengambil data: ${err.message}</span>`;
+      }
     }
   </script>
 
