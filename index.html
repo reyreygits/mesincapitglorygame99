@@ -59,7 +59,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
-    // Ganti dengan config Firebase kamu
     const firebaseConfig = {
       apiKey: "AIzaSyCMlcSNmPU924iGdXORaX1PBq6sTXiaw-o",
       authDomain: "ariptoto-firebase.firebaseapp.com",
@@ -93,18 +92,7 @@
           return;
         }
 
-        const machine = snapshot.val();
-
-        if (machine.remaining < 1) {
-          // Hadiah habis tapi tetap tampilkan nama hadiah
-          resultDiv.innerHTML = `
-            <span class="success">🎉 Hadiah: <span class="voucher">${machine.name}</span></span><br>
-            <span class="error">😢 Maaf, hadiah sudah habis!</span>
-          `;
-          return;
-        }
-
-        // Kurangi remaining secara atomik dengan transaksi Firebase
+        // Jalankan transaksi untuk kurangi hadiah
         await db.ref("machines/" + code).transaction(currentData => {
           if (currentData === null) return;
           if (currentData.remaining > 0) {
@@ -117,17 +105,18 @@
           if (error) {
             resultDiv.innerHTML = `<span class="error">❌ Terjadi kesalahan: ${error.message}</span>`;
           } else if (!committed) {
+            const current = snapshot.val();
             resultDiv.innerHTML = `
-              <span class="success">🎉 Hadiah: <span class="voucher">${machine.name}</span></span><br>
-              <span class="error">😢 Hadiah sudah habis saat klaim!</span>
+              <span class="success">🎁 Hadiah: <span class="voucher">${current.name}</span></span><br>
+              <span class="error">😢 Hadiah sudah habis saat diklaim!</span>
+              <small>Sisa: 0</small>
             `;
           } else {
-            const prizeName = snapshot.val().name;
-            const sisa = snapshot.val().remaining;
+            const updated = snapshot.val();
             resultDiv.innerHTML = `
               <span class="success">🎉 Selamat! Kamu mendapat:</span>
-              <div class="voucher">${prizeName}</div>
-              <small>Sisa hadiah: ${sisa}</small>
+              <div class="voucher">${updated.name}</div>
+              <small>Sisa hadiah: ${updated.remaining}</small>
             `;
           }
         });
