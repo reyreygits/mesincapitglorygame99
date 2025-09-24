@@ -2,44 +2,55 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Mesin Capit - Klaim Hadiah</title>
+  <title>Claim Hadiah Mesin Capit</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f7f7f7;
       padding: 20px;
-      background-color: #f7f7f7;
     }
     .section {
-      background: white;
-      padding: 20px;
-      margin: 20px auto;
+      background: #fff;
       max-width: 500px;
+      margin: 30px auto;
+      padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     input, button {
-      padding: 10px;
-      margin: 8px 0;
       width: 100%;
+      padding: 10px;
+      margin: 10px 0;
       box-sizing: border-box;
     }
-    .success { color: green; }
-    .error { color: red; }
+    .success {
+      color: green;
+      margin-top: 15px;
+      white-space: pre-line;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+    }
     .voucher {
       font-weight: bold;
-      font-size: 1.5em;
-      color: #007BFF;
-      margin-top: 10px;
+      font-size: 22px;
+      color: blue;
+      margin: 10px 0;
+      display: block;
     }
   </style>
 </head>
 <body>
 
   <div class="section">
-    <h2>🎁 Mesin Capit - Klaim Hadiah</h2>
-    <label>Masukkan Kode Mesin Capit:</label>
+    <h2>🎁 Klaim Hadiah Mesin Capit</h2>
+
+    <label for="inputCode">Masukkan Kode Mesin Capit:</label>
     <input type="text" id="inputCode" placeholder="Contoh: ABC123" />
+
     <button onclick="claimPrize()">Capit Hadiah!</button>
+
     <div id="claimResult"></div>
   </div>
 
@@ -48,6 +59,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
+    // Ganti dengan config Firebase kamu
     const firebaseConfig = {
       apiKey: "AIzaSyCMlcSNmPU924iGdXORaX1PBq6sTXiaw-o",
       authDomain: "ariptoto-firebase.firebaseapp.com",
@@ -71,10 +83,11 @@
         return;
       }
 
-      resultDiv.innerHTML = "Memeriksa kode...";
+      resultDiv.textContent = "Memeriksa kode...";
 
       try {
         const snapshot = await db.ref("machines/" + code).get();
+
         if (!snapshot.exists()) {
           resultDiv.innerHTML = `<span class="error">❌ Kode mesin capit tidak ditemukan!</span>`;
           return;
@@ -83,25 +96,31 @@
         const machine = snapshot.val();
 
         if (machine.remaining < 1) {
-          resultDiv.innerHTML = `<span class="error">😢 Maaf, hadiah sudah habis!</span>`;
+          // Hadiah habis tapi tetap tampilkan nama hadiah
+          resultDiv.innerHTML = `
+            <span class="success">🎉 Hadiah: <span class="voucher">${machine.name}</span></span><br>
+            <span class="error">😢 Maaf, hadiah sudah habis!</span>
+          `;
           return;
         }
 
         // Kurangi remaining secara atomik dengan transaksi Firebase
         await db.ref("machines/" + code).transaction(currentData => {
           if (currentData === null) return;
-
           if (currentData.remaining > 0) {
             currentData.remaining--;
             return currentData;
           } else {
-            return; // Hadiah habis, batalkan transaksi
+            return;
           }
         }, (error, committed, snapshot) => {
           if (error) {
             resultDiv.innerHTML = `<span class="error">❌ Terjadi kesalahan: ${error.message}</span>`;
           } else if (!committed) {
-            resultDiv.innerHTML = `<span class="error">😢 Hadiah sudah habis saat klaim!</span>`;
+            resultDiv.innerHTML = `
+              <span class="success">🎉 Hadiah: <span class="voucher">${machine.name}</span></span><br>
+              <span class="error">😢 Hadiah sudah habis saat klaim!</span>
+            `;
           } else {
             const prizeName = snapshot.val().name;
             const sisa = snapshot.val().remaining;
