@@ -2,26 +2,66 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Klaim Hadiah Mesin Capit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kotak Misteri Box - GLORYGAME99</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
-      padding: 20px;
-    }
-    .section {
-      background: white;
-      padding: 20px;
-      max-width: 500px;
-      margin: 30px auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px 0;
-      width: 100%;
+    * {
       box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #2c3e50, #3498db);
+      color: #333;
+    }
+    .container {
+      max-width: 500px;
+      margin: 60px auto;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      animation: fadeIn 1s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .branding {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #2980b9;
+      letter-spacing: 1px;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #3498db;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #2980b9;
     }
     .success {
       color: green;
@@ -35,21 +75,23 @@
     .voucher {
       font-weight: bold;
       font-size: 22px;
-      color: blue;
+      color: #e67e22;
       margin: 10px 0;
       display: block;
+    }
+    small {
+      color: #555;
     }
   </style>
 </head>
 <body>
 
-  <div class="section">
-    <h2>🎁 Klaim Hadiah Mesin Capit</h2>
+  <div class="container">
+    <div class="branding">🎁 KOTAK MISTERI BOX - GLORYGAME99</div>
+    <h2>Klaim Hadiah Mesin Capit</h2>
 
-    <label for="inputCode">Masukkan Kode Mesin Capit:</label>
-    <input type="text" id="inputCode" placeholder="Contoh: ABC123" />
-
-    <button onclick="claimPrize()">Capit Hadiah!</button>
+    <input type="text" id="inputCode" placeholder="Masukkan kode mesin capit (cth: ABC123)" />
+    <button onclick="claimPrize()">🎮 Capit Hadiah!</button>
 
     <div id="claimResult"></div>
   </div>
@@ -59,7 +101,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
-    // Firebase config milik kamu
     const firebaseConfig = {
       apiKey: "AIzaSyCMlcSNmPU924iGdXORaX1PBq6sTXiaw-o",
       authDomain: "ariptoto-firebase.firebaseapp.com",
@@ -70,7 +111,6 @@
       appId: "1:200968229021:web:b4717f29db3ceba8ecc474"
     };
 
-    // Inisialisasi Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -96,7 +136,6 @@
 
         const machine = snapshot.val();
 
-        // Proses transaksi pengurangan remaining
         await db.ref("machines/" + code).transaction(currentData => {
           if (currentData === null) return;
 
@@ -104,7 +143,7 @@
             currentData.remaining--;
             return currentData;
           } else {
-            return; // Hadiah habis, tidak dikurangi
+            return;
           }
         }, (error, committed, finalSnapshot) => {
           if (error) {
@@ -112,7 +151,7 @@
           } else if (!committed) {
             resultDiv.innerHTML = `
               <span class="voucher">🎁 ${machine.name} - ${machine.nominal}</span>
-              <span class="error">SELAMAT!</span>
+              <span class="error">selamat!</span>
             `;
           } else {
             const updatedData = finalSnapshot.val();
